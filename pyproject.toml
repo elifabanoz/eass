@@ -26,7 +26,7 @@ ml = ["lightgbm>=4.6,<5", "numpy>=2.1,<3"]
 train = ["lightgbm>=4.6,<5", "numpy>=2.1,<3", "scikit-learn>=1.6,<2"]
 
 [tool.setuptools.packages.find]
-include = ["eass*", "experiments*"]
+include = ["eass*", "experiments*", "scripts*"]
 
 [tool.setuptools.package-data]
 "eass.report" = ["attack_map.json", "prompts/*.txt"]

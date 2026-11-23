@@ -1,69 +1,70 @@
 # EASS
 
-EASS, dosyaları çalıştırmadan inceleyen bir tarama servisidir. REST API dosyayı kabul edip taramayı Celery worker'a bırakır; ICAP servisi aynı analiz hattını HTTP trafiği üzerinde senkron çalıştırır. Sonuçlar PostgreSQL'de tutulur.
+EASS is a static file scanning service. Its REST API accepts uploads and queues scans for a Celery worker. An ICAP service applies the same analysis pipeline to HTTP traffic. Scan records and reports are stored in PostgreSQL.
 
-Bu depo bir yerel teknik demodur. Zararlı yazılımı kesin olarak tespit etme veya güvenli olduğunu garanti etme iddiası taşımaz.
+This repository is a local technical demo. A `clean` verdict does not guarantee that a file is safe.
 
-## Mimari
+## Architecture
 
-| Bileşen | Görevi |
+| Component | Responsibility |
 | --- | --- |
-| FastAPI | Dosya yükleme, tarama durumu ve rapor uçları |
-| Redis | Celery görev kuyruğu ve yükleme hız sınırı |
-| Celery worker | Hash, MalwareBazaar, YARA, PE ve model kontrollerini çalıştırır |
-| PostgreSQL | Tarama durumu, katman sonuçları ve raporlar |
-| ICAP | REQMOD/RESPMOD trafiğinde geçiş veya engelleme kararı |
-| EMBER extractor | PE dosyasından tam model için 2381 özellik çıkarır |
+| FastAPI | Uploads, scan status, and report endpoints |
+| Redis | Celery task queue and upload rate limiting |
+| Celery worker | Hash reputation, MalwareBazaar, YARA, PE analysis, and model checks |
+| PostgreSQL | Scan status, layer results, and reports |
+| ICAP | Allow or block decisions for REQMOD and RESPMOD traffic |
+| EMBER extractor | Extracts 2,381 PE features for the full model |
 
-REST akışı: `POST /scans` → PostgreSQL'de `queued` kayıt → Redis üzerinden Celery görevi → worker'da `run_scan` → PostgreSQL'de sonuç → `GET /scans/{scan_id}`. ICAP aynı `run_scan` fonksiyonunu senkron çağırır. Rapor açıksa tarama sonrasında ayrı bir Celery göreviyle hazırlanır.
+The REST path is `POST /scans` → a `queued` PostgreSQL record → a Celery task through Redis → `run_scan` in the worker → a stored result → `GET /scans/{scan_id}`. ICAP calls the same `run_scan` function synchronously. When reports are enabled, a separate Celery task builds the report after the scan.
 
-## Yerel çalıştırma
+## Run locally
 
-Docker Desktop (Linux container desteği) gerekir. İlk kurulumda imajları oluşturmak ve EMBER özellik çıkarıcısını almak için internet erişimi gerekir. `models/` altındaki model dosyaları depoda bulunur.
+Docker Desktop with Linux containers is required. The first build needs internet access to build images and fetch the EMBER feature extractor. Model files are included under `models/`.
 
-PowerShell'de:
+From PowerShell:
 
 ```powershell
-cd C:\Users\aysel\eass
+git clone https://github.com/elifabanoz/eass.git
+cd eass
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# .env içine kendi MalwareBazaar Auth-Key değerinizi ekleyin; anahtarı Git'e koymayın.
+# Add your MalwareBazaar Auth-Key to .env if you have one. Never commit it.
 docker compose up -d --build
 docker compose ps
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Başka bir dizine klonladıysanız ilk satırda o dizini kullanın. API belgesi: <http://127.0.0.1:8000/docs>. API ve ICAP varsayılan olarak yalnızca bu bilgisayarın `127.0.0.1` adresine bağlanır. `migrate` servisinin `Exited (0)` durumuyla bitmesi normaldir.
+If you already have the repository, run the commands from its root and skip `git clone`. API documentation is at <http://127.0.0.1:8000/docs>. API and ICAP bind to `127.0.0.1` by default. It is normal for the `migrate` service to finish with `Exited (0)`.
 
-`MALWAREBAZAAR_AUTH_KEY` olmadan çevrimiçi hash sorgusu ve döküm güncellemesi çalışmaz; yerel EICAR hash kontrolü ve diğer katmanlar çalışır. `REPORTS_ENABLED=true` rapor uçlarını açar. Dış tehdit istihbaratı sorgusu için ayrıca `OFFLINE_MODE=false` ve Auth-Key gerekir. Raporun isteğe bağlı dil modeli bölümleri için uyumlu bir `LLM_BASE_URL` ve `LLM_MODEL` sağlanmalıdır; model servisi yoksa bu bölümler kullanılamayabilir.
+Without `MALWAREBAZAAR_AUTH_KEY`, online hash lookup and dump refresh are unavailable; the local EICAR hash check and other scanning layers still work. `REPORTS_ENABLED=true` enables report endpoints. External threat intelligence also requires `OFFLINE_MODE=false` and an Auth-Key. Optional language-model report sections require a compatible `LLM_BASE_URL` and `LLM_MODEL`; those sections may be unavailable without a model service.
 
 ## Demo
 
-1. Swagger'da `POST /scans` ile `C:\Windows\System32\notepad.exe` dosyasını yükleyin.
-2. Dönen `scan_id` ile `GET /scans/{scan_id}` ve rapor açıksa `GET /scans/{scan_id}/report` çağırın.
-3. Ayrı bir terminalde `docker compose logs -f --tail=20 worker` komutuyla Celery görevinin alınıp bittiğini gösterin.
-4. EICAR test imzasını REST ve ICAP üzerinden sınamak için `python scripts/smoke_live.py` çalıştırın. Bu betik iki taramada `malicious` sonucunu ve ICAP engelleme yanıtını kontrol eder. EICAR gerçek zararlı yazılım değildir.
+1. Upload `C:\Windows\System32\notepad.exe` with `POST /scans` in Swagger.
+2. Use the returned `scan_id` with `GET /scans/{scan_id}` and, when reports are enabled, `GET /scans/{scan_id}/report`.
+3. In another terminal, run `docker compose logs -f --tail=20 worker` to show Celery receiving and completing the task.
+4. Run `python scripts/smoke_live.py` to test the EICAR signature through REST and ICAP. The script checks for `malicious` verdicts and an ICAP block response. EICAR is a test file, not malware.
 
-## Model eğitimi ve ölçüm
+## Model training and results
 
-Üretimde kullanılan tam PE modeli, [EMBER 2018 v2](https://github.com/elastic/ember) ve [BODMAS](https://whyisyoung.github.io/BODMAS/) özellikleriyle eğitilen iki LightGBM modelinin çıktı ortalamasıdır. EMBER'den 100.000 temiz ve 100.000 zararlı kayıt seçildi; bunların 160.000'i eğitim, 40.000'i doğrulama için kullanıldı. BODMAS 2019'dan Ağustos–Ekim dönemindeki 20.049 kayıt eğitime, Kasım–Aralık dönemindeki 16.371 kayıt doğrulamaya ayrıldı. Ham EXE dosyaları modele doğrudan verilmedi.
+The full PE model used at runtime averages the outputs of two LightGBM models trained on features from [EMBER 2018 v2](https://github.com/elastic/ember) and [BODMAS](https://whyisyoung.github.io/BODMAS/). The EMBER selection contained 100,000 benign and 100,000 malicious records: 160,000 for fitting and 40,000 for validation. Another 20,049 BODMAS records from August–October 2019 were used for fitting, and 16,371 from November–December 2019 for validation. The models were trained on extracted features, not raw EXE files.
 
-Her iki modelde 700 ağaç, 127 yaprak ve 0,05 öğrenme hızı kullanıldı. İkinci model iki özelliği dışarıda bırakarak eğitildi. Çalışma zamanında iki çıktı ortalanır; `models/ember_full_lgbm.json` içindeki karar eşiği `0.7376758677690286` değeridir. Eşik, EMBER doğrulamasında en fazla %1 ve geç 2019 BODMAS doğrulamasında en fazla %0,5 yanlış alarm sınırları dikkate alınarak seçildi. Model çıktısı EASS'ın 0–100 risk puanı veya nihai kararıyla aynı şey değildir.
+Both models used 700 trees, 127 leaves, and a 0.05 learning rate. The second model excluded two features. Runtime predictions are averaged and compared with the `0.7376758677690286` threshold recorded in `models/ember_full_lgbm.json`. The threshold was selected against limits of 1% false positives on EMBER validation and 0.5% on late-2019 BODMAS validation. Model probability is distinct from EASS's 0–100 risk score and final verdict.
 
-| Ölçüm | Örnek | Recall | Yanlış alarm oranı |
+| Evaluation | Samples | Recall | False positive rate |
 | --- | ---: | ---: | ---: |
-| EMBER doğrulama | 40.000 | %95,725 | %1,000 |
-| BODMAS 2020 | 87.284 | %99,279 | %0,177 |
+| EMBER validation | 40,000 | 95.725% | 1.000% |
+| BODMAS 2020 | 87,284 | 99.279% | 0.177% |
 
-Bu sayılar `models/ember_full_lgbm.json` kaydından alınmıştır. Resmî EMBER testine ve BODMAS 2020 verisine önceki denemelerde bakıldığı için sonuçlar tamamen kör bir nihai test değil, keşifsel değerlendirmedir. Bu ölçümler güncel saha performansını garanti etmez. Eğitim ve değerlendirme kodu `experiments/` altındadır; eğitim veri arşivleri depoya dahil değildir.
+These figures come from `models/ember_full_lgbm.json`. The official EMBER test set and BODMAS 2020 data were viewed during earlier experiments, so these are exploratory results rather than a fully blind final test. They do not guarantee performance on current real-world files. Training and evaluation scripts are in `experiments/`; the training datasets are not included in this repository.
 
-## Sınırlar
+## Limitations
 
-- ZIP içeriği açılıp taranmıyor; PE dışındaki türlerde derin analiz sınırlı.
-- Yerel YARA kuralları sınırlı kapsamlıdır. Hash eşleşmesi olmaması dosyanın güvenli olduğunu kanıtlamaz.
-- Rapor önerileri otomatik karantina veya dosya serbest bırakma işlemi başlatmaz.
-- Bu Compose yapılandırması yerel demo içindir. `compose.vps.yaml` dağıtım hazırlığıdır; VPS dağıtımı doğrulanmış değildir.
+- ZIP contents are not unpacked and scanned. Analysis of non-PE files is limited.
+- The local YARA rules have limited coverage. No hash match does not establish that a file is safe.
+- Report recommendations do not automatically quarantine or release files.
+- This Compose setup is for a local demo. `compose.vps.yaml` is deployment preparation; a VPS deployment has not been verified.
 
-## Kontroller
+## Checks
 
 ```powershell
 python -m pip install '.[dev,train]'
@@ -73,4 +74,4 @@ pytest -q
 python -c "import eass.api, eass.worker, eass.icap.server"
 ```
 
-Son yerel kontrolde 70 test geçti ve Ruff kontrolleri temizdi. GitHub Actions iş akışı aynı lint ve test komutlarını çalıştıracak şekilde tanımlıdır; uzak CI sonucu ayrıca doğrulanmalıdır.
+The latest local run passed all 70 tests and Ruff checks. GitHub Actions runs the same lint and test commands; check the workflow result for the current commit.
