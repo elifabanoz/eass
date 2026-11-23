@@ -70,7 +70,7 @@ These figures come from `models/ember_full_lgbm.json`. The official EMBER test s
 python -m pip install '.[dev,train]'
 ruff check .
 ruff format --check .
-pytest -q
+python -m pytest -q
 python -c "import eass.api, eass.worker, eass.icap.server"
 ```
 
