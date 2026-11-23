@@ -1,0 +1,23 @@
+{
+  "file_type": "pe",
+  "size": 1024,
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "result": {
+    "verdict": "suspicious",
+    "score": 45,
+    "reasons": ["PE import pattern and section entropy"],
+    "layers": {
+      "hash": {"status": "complete", "matched": false},
+      "malwarebazaar": {"status": "complete", "matched": false},
+      "yara": {"status": "complete", "matches": []},
+      "pe": {
+        "status": "complete",
+        "sections": [{"name": ".text", "entropy": 7.7, "raw_size": 2048}],
+        "suspicious_imports": ["VirtualAllocEx", "WriteProcessMemory", "CreateRemoteThread"],
+        "upx_sections": [],
+        "timestamp_anomaly": false
+      },
+      "ml": {"status": "skipped"}
+    }
+  }
+}

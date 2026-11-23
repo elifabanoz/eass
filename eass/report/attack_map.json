@@ -1,0 +1,6 @@
+{
+  "pe-import-chain": {
+    "technique_id": "T1055",
+    "name": "Process Injection"
+  }
+}

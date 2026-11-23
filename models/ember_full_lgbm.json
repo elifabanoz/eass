@@ -1,0 +1,175 @@
+{
+  "dataset": "EMBER 2018 v2 and BODMAS 2019",
+  "dataset_sha256": "b6052eb8d350a49a8d5a5396fbe7d16cf42848b86ff969b77464434cf2997812",
+  "bodmas_sha256": "0a833e46c22c096920c8068d4fb54b868067777c277c0a6eecf527c98d7e5a9e",
+  "feature_set": "ember_full_v2",
+  "feature_dim": 2381,
+  "reference_sha256": "db0d93bb1e1d4b28558e373c77194a82c3cae09d7a1aeb44eea5dd68e84f3ffd",
+  "train_source_counts": {
+    "0": 300000,
+    "1": 300000
+  },
+  "ember_fit_count": 160000,
+  "ember_validation_count": 40000,
+  "bodmas_fit_count": 20049,
+  "bodmas_validation_count": 16371,
+  "bodmas_fit_period": "2019-08 through 2019-10",
+  "bodmas_validation_period": "2019-11 through 2019-12",
+  "parameters": {
+    "n_estimators": 700,
+    "num_leaves": 127,
+    "learning_rate": 0.05
+  },
+  "lightgbm_version": "4.7.0",
+  "selection_note": "Equal weights were fixed before diagnostic scoring. Threshold came from disjoint EMBER training validation and late-2019 BODMAS validation. Official EMBER test and BODMAS 2020 were viewed in earlier experiments; results are exploratory.",
+  "threshold": 0.7376758677690286,
+  "fit_count": 180049,
+  "validation": {
+    "count": 16371,
+    "threshold": 0.7376758677690286,
+    "roc_auc": 0.9999459481780257,
+    "recall": 0.9923465482932803,
+    "false_positive_rate": 0.000914820085383208,
+    "confusion_matrix": [
+      [
+        9829,
+        9
+      ],
+      [
+        50,
+        6483
+      ]
+    ]
+  },
+  "calibration_diagnostic": {
+    "training_threshold": 0.09396428511716402,
+    "bodmas_2019_validation": {
+      "roc_auc": 0.9999417317002608,
+      "precision": 0.9850656207572787,
+      "recall": 0.9995407928975968,
+      "false_positive_rate": 0.010063020939215288,
+      "confusion_matrix": [
+        [
+          9739,
+          99
+        ],
+        [
+          3,
+          6530
+        ]
+      ]
+    },
+    "ember_2018_validation": {
+      "roc_auc": 0.9971631,
+      "precision": 0.9379114373668008,
+      "recall": 0.9902,
+      "false_positive_rate": 0.06555,
+      "confusion_matrix": [
+        [
+          18689,
+          1311
+        ],
+        [
+          196,
+          19804
+        ]
+      ]
+    }
+  },
+  "official_test_count": 200000,
+  "official_test": {
+    "count": 200000,
+    "threshold": 0.7376758677690286,
+    "roc_auc": 0.9949004162,
+    "recall": 0.95198,
+    "false_positive_rate": 0.01509,
+    "confusion_matrix": [
+      [
+        98491,
+        1509
+      ],
+      [
+        4802,
+        95198
+      ]
+    ],
+    "precision": 0.9843961657377439
+  },
+  "external_test": {
+    "dataset": "BODMAS",
+    "feature_archive_sha256": "0a833e46c22c096920c8068d4fb54b868067777c277c0a6eecf527c98d7e5a9e",
+    "metadata_sha256": "5f1dc793cac4a540ef9e0c40fd7897142095621790d3c6f2d6637971806f4c50",
+    "metrics_2020": {
+      "count": 87284,
+      "threshold": 0.7376758677690286,
+      "roc_auc": 0.9998837319148607,
+      "recall": 0.9927899686520376,
+      "false_positive_rate": 0.0017680185096258785,
+      "confusion_matrix": [
+        [
+          45733,
+          81
+        ],
+        [
+          299,
+          41171
+        ]
+      ]
+    }
+  },
+  "model_sha256": "8f959b111b116bf8c427250019d68bc2475ab5915fb51f0d682d2fa10b295af6",
+  "previous_model_sha256": "0ac1d3531471d540c57b2d91e667df1dcf80bc3110d920d45b577295c3f375f4",
+  "runtime_lief_version": "0.10.1",
+  "source_state": "local uncommitted training code",
+  "training_script": "experiments/train_recent_experiment.py",
+  "runtime_compatible": true,
+  "ember_2018_validation": {
+    "count": 40000,
+    "threshold": 0.7376758677690286,
+    "roc_auc": 0.9973235300000002,
+    "recall": 0.95725,
+    "false_positive_rate": 0.01,
+    "confusion_matrix": [
+      [
+        19800,
+        200
+      ],
+      [
+        855,
+        19145
+      ]
+    ]
+  },
+  "calibration": {
+    "selection_rule": "max(EMBER validation 1% FPR cutoff, BODMAS late-2019 validation 0.5% FPR cutoff)",
+    "ember_required_threshold": 0.7376758677690286,
+    "bodmas_required_threshold": 0.19898821237015285,
+    "selected_threshold": 0.7376758677690286,
+    "previous_single_model_threshold": 0.7580964365942079
+  },
+  "model_variant": "recent_equal_v1",
+  "ensemble": {
+    "method": "mean_two",
+    "secondary_model": "ember_full_ablation_lgbm.txt",
+    "secondary_model_sha256": "34a7eeb26df0da6d3314644b4059fb4f0c20c285cd68b8b43c9d528a25ced6b5",
+    "secondary_dropped_feature_indices": [
+      637,
+      2359
+    ]
+  },
+  "partner_training_script": "experiments/train_recent_experiment.py --drop-feature 637 --drop-feature 2359",
+  "runtime_smoke": {
+    "observed_at_utc": "2026-11-19T22:59:32.693117+00:00",
+    "sample": "notepad.exe",
+    "api_scan_id": "7906bffb-423c-4bcc-a76e-f19bb7370270",
+    "icap_scan_id": "dd7fdd78-a3ef-40a2-812f-9c8fa91671f6",
+    "eicar_scan_id": "df573843-3f0a-4f71-8455-c2a75f56795c",
+    "model_variant": "recent_equal_v1",
+    "feature_set": "ember_full_v2",
+    "probability": 0.000232,
+    "threshold": 0.7376758677690286,
+    "verdict": "clean",
+    "icap_scan_seconds": 5.17,
+    "eicar_verdict": "malicious"
+  }
+}

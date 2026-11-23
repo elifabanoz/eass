@@ -1,0 +1,11 @@
+FROM python:3.8-slim@sha256:1d52838af602b4b5a831beb13a0e4d073280665ea7be7f69ce2382f29c5a613f
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /opt/ember
+RUN pip install --no-cache-dir lief==0.10.1 numpy==1.23.5 scipy==1.10.1 scikit-learn==1.2.2
+COPY ember_extractor/fetch_official.py ./fetch_official.py
+RUN python fetch_official.py
+COPY ember_extractor/server.py ./server.py
+USER 10001:10001
+EXPOSE 8090
+CMD ["python", "server.py"]

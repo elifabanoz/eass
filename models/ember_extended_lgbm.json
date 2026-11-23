@@ -1,0 +1,103 @@
+{
+  "dataset": "EMBER 2018 v2",
+  "dataset_sha256": "b6052eb8d350a49a8d5a5396fbe7d16cf42848b86ff969b77464434cf2997812",
+  "feature_set": "byte_histogram_entropy_strings_v1",
+  "train_source_counts": {
+    "0": 300000,
+    "1": 300000
+  },
+  "train_selected": 80000,
+  "fit_count": 64000,
+  "validation_count": 16000,
+  "official_test_count": 200000,
+  "threshold": 0.8527738987438438,
+  "parameters": {
+    "n_estimators": 400,
+    "num_leaves": 63,
+    "learning_rate": 0.05
+  },
+  "validation": {
+    "roc_auc": 0.9846536406249999,
+    "precision": 0.9876275904732447,
+    "recall": 0.79825,
+    "false_positive_rate": 0.01,
+    "confusion_matrix": [
+      [
+        7920,
+        80
+      ],
+      [
+        1614,
+        6386
+      ]
+    ]
+  },
+  "official_test": {
+    "roc_auc": 0.9736692651,
+    "precision": 0.9767436051159073,
+    "recall": 0.78202,
+    "false_positive_rate": 0.01862,
+    "confusion_matrix": [
+      [
+        98138,
+        1862
+      ],
+      [
+        21798,
+        78202
+      ]
+    ]
+  },
+  "trials": [
+    {
+      "parameters": {
+        "n_estimators": 250,
+        "num_leaves": 31,
+        "learning_rate": 0.05
+      },
+      "threshold": 0.8407243714054674,
+      "validation": {
+        "roc_auc": 0.97694015625,
+        "precision": 0.9864864864864865,
+        "recall": 0.73,
+        "false_positive_rate": 0.01,
+        "confusion_matrix": [
+          [
+            7920,
+            80
+          ],
+          [
+            2160,
+            5840
+          ]
+        ]
+      }
+    },
+    {
+      "parameters": {
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "learning_rate": 0.05
+      },
+      "threshold": 0.8527738987438438,
+      "validation": {
+        "roc_auc": 0.9846536406249999,
+        "precision": 0.9876275904732447,
+        "recall": 0.79825,
+        "false_positive_rate": 0.01,
+        "confusion_matrix": [
+          [
+            7920,
+            80
+          ],
+          [
+            1614,
+            6386
+          ]
+        ]
+      }
+    }
+  ],
+  "lightgbm_version": "4.7.0",
+  "model_type": "byte histogram, byte entropy and string features"
+}

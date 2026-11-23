@@ -1,0 +1,48 @@
+{
+  "dataset": "EMBER 2018 v2",
+  "dataset_sha256": "b6052eb8d350a49a8d5a5396fbe7d16cf42848b86ff969b77464434cf2997812",
+  "feature_set": "normalized_byte_histogram_v1",
+  "train_source_counts": {
+    "0": 300000,
+    "1": 300000
+  },
+  "train_selected": 40000,
+  "fit_count": 32000,
+  "validation_count": 8000,
+  "official_test_count": 200000,
+  "threshold": 0.8571328341121811,
+  "validation": {
+    "roc_auc": 0.9655483125000002,
+    "precision": 0.9843566679702777,
+    "recall": 0.62925,
+    "false_positive_rate": 0.01,
+    "confusion_matrix": [
+      [
+        3960,
+        40
+      ],
+      [
+        1483,
+        2517
+      ]
+    ]
+  },
+  "official_test": {
+    "roc_auc": 0.9456503484999998,
+    "precision": 0.9732583757502089,
+    "recall": 0.64055,
+    "false_positive_rate": 0.0176,
+    "confusion_matrix": [
+      [
+        98240,
+        1760
+      ],
+      [
+        35945,
+        64055
+      ]
+    ]
+  },
+  "lightgbm_version": "4.7.0",
+  "model_type": "histogram-only baseline"
+}

@@ -1,0 +1,190 @@
+services:
+  api:
+    image: eass:local
+    build: .
+    command: uvicorn eass.api:app --host 0.0.0.0 --port 8000
+    environment:
+      DATABASE_URL: postgresql+psycopg://eass:eass@postgres:5432/eass
+      CELERY_BROKER_URL: redis://redis:6379/0
+      QUARANTINE_DIR: /quarantine
+      MAX_UPLOAD_BYTES: "20971520"
+      EASS_API_KEY: ${EASS_API_KEY:-}
+      RATE_LIMIT_PER_MINUTE: "20"
+      REPORTS_ENABLED: ${REPORTS_ENABLED:-false}
+    ports:
+      - 127.0.0.1:8000:8000
+    volumes:
+      - quarantine:/quarantine
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  worker:
+    image: eass:local
+    command: celery -A eass.worker:celery_app worker --loglevel=INFO --concurrency=1
+    environment:
+      DATABASE_URL: postgresql+psycopg://eass:eass@postgres:5432/eass
+      CELERY_BROKER_URL: redis://redis:6379/0
+      QUARANTINE_DIR: /quarantine
+      HASH_LIST_PATH: /hashes/hashes.txt
+      MALWAREBAZAAR_AUTH_KEY: ${MALWAREBAZAAR_AUTH_KEY:-}
+      MODEL_DIR: /models
+      EMBER_EXTRACTOR_URL: http://ember-extractor:8090/features
+      REPORTS_ENABLED: ${REPORTS_ENABLED:-false}
+      OFFLINE_MODE: ${OFFLINE_MODE:-true}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-90}
+    volumes:
+      - quarantine:/quarantine
+      - hashes:/hashes
+      - ./models:/models:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      ember-extractor:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  hash-updater:
+    image: eass:local
+    build: .
+    command: python -m eass.update_hashes --loop
+    environment:
+      MALWAREBAZAAR_AUTH_KEY: ${MALWAREBAZAAR_AUTH_KEY:-}
+      HASH_LIST_PATH: /hashes/hashes.txt
+    volumes:
+      - hashes:/hashes
+    restart: on-failure
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  icap:
+    image: eass:local
+    command: python -m eass.icap
+    environment:
+      DATABASE_URL: postgresql+psycopg://eass:eass@postgres:5432/eass
+      CELERY_BROKER_URL: redis://redis:6379/0
+      QUARANTINE_DIR: /quarantine
+      HASH_LIST_PATH: /hashes/hashes.txt
+      MALWAREBAZAAR_AUTH_KEY: ${MALWAREBAZAAR_AUTH_KEY:-}
+      MODEL_DIR: /models
+      EMBER_EXTRACTOR_URL: http://ember-extractor:8090/features
+      MAX_UPLOAD_BYTES: "20971520"
+      ICAP_PORT: ${ICAP_PORT:-1344}
+      ICAP_SCAN_TIMEOUT_SECONDS: ${ICAP_SCAN_TIMEOUT_SECONDS:-30}
+      ICAP_SUSPICIOUS_ACTION: ${ICAP_SUSPICIOUS_ACTION:-block}
+      ICAP_FAIL_MODE: ${ICAP_FAIL_MODE:-closed}
+      REPORTS_ENABLED: ${REPORTS_ENABLED:-false}
+    ports:
+      - 127.0.0.1:${ICAP_PORT:-1344}:${ICAP_PORT:-1344}
+    volumes:
+      - quarantine:/quarantine
+      - hashes:/hashes:ro
+      - ./models:/models:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      ember-extractor:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  ember-extractor:
+    image: eass-ember:local
+    build:
+      context: .
+      dockerfile: Dockerfile.ember
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 512m
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  migrate:
+    image: eass:local
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://eass:eass@postgres:5432/eass
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: eass
+      POSTGRES_USER: eass
+      POSTGRES_PASSWORD: eass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eass -d eass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  quarantine:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=512m,noexec,nosuid,nodev,uid=10001,gid=10001
+  hashes:
+  postgres_data:
+

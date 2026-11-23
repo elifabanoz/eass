@@ -1,0 +1,17 @@
+{
+  "file_type": "text",
+  "size": 13,
+  "sha256": "cf7e0cb3799813c75eb1ec05482a20a640dd269ce5c6479dbda0a88a0a0a0e01",
+  "result": {
+    "verdict": "clean",
+    "score": 0,
+    "reasons": ["No indicators found in the completed checks"],
+    "layers": {
+      "hash": {"status": "complete", "matched": false},
+      "malwarebazaar": {"status": "complete", "matched": false},
+      "yara": {"status": "complete", "matches": []},
+      "pe": {"status": "skipped"},
+      "ml": {"status": "skipped"}
+    }
+  }
+}

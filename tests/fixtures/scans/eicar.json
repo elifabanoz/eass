@@ -1,0 +1,17 @@
+{
+  "file_type": "text",
+  "size": 68,
+  "sha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+  "result": {
+    "verdict": "malicious",
+    "score": 100,
+    "reasons": ["SHA-256 matched eicar-test"],
+    "layers": {
+      "hash": {"status": "complete", "matched": true, "source": "eicar-test"},
+      "malwarebazaar": {"status": "complete", "matched": false},
+      "yara": {"status": "complete", "matches": [{"rule": "EICAR_Test_File", "meta": {"confidence": "high"}}]},
+      "pe": {"status": "skipped"},
+      "ml": {"status": "skipped"}
+    }
+  }
+}
